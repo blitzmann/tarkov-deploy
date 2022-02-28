@@ -10,7 +10,7 @@ import win32con
 import win32api
 import re
 from playsound import playsound
-
+import sys
 
 toplist, winlist = [], []
 
@@ -20,6 +20,11 @@ def enum_cb(hwnd, results):
 win32gui.EnumWindows(enum_cb, toplist)
 
 tarkov = [(hwnd, title) for hwnd, title in winlist if 'escapefromtarkov' in title.lower()]
+
+if len(tarkov) == 0:
+    print("Escape From Tarkov window not found, exiting...")
+    sys.exit(1)
+
 # just grab the hwnd for first window matching firefox
 tarkov = tarkov[0]
 hwnd = tarkov[0]
@@ -29,17 +34,15 @@ names = [
     "Lt_Lippski"
 ]
 
-while True:
-    # win32gui.SetForegroundWindow(hwnd)
+def capture_sub_window_percentage(hwnd, x_left, x_right, y_top, y_bottom):
     bbox = win32gui.GetWindowRect(hwnd)
 
-    #auto-accept invites
     game_width = bbox[2] - bbox[0]
     game_height = bbox[3] - bbox[1]
     x_gutters = int(game_width * .35)
     top_gutter = int(game_height * .42)
     bottom_gutter = int(game_height * .42)
-    win32gui.SetForegroundWindow(hwnd)
+    # win32gui.SetForegroundWindow(hwnd)
     new_box = (
         bbox[0] + x_gutters,
         bbox[1] + top_gutter,
@@ -48,47 +51,32 @@ while True:
     )
 
     img = ImageGrab.grab(new_box)
-    after_grab = time.time()
-    # cv2.imshow('screen', np.array(img))
-    # cv2.waitKey(0)
+    return img
+
+def convert_image_to_text(img):
     im = np.asarray(img)
     im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     text = pytesseract.image_to_string(im).lower()
+    return text
 
-    matches = re.finditer(r"(.+) wants to invite you", text, re.IGNORECASE | re.MULTILINE)
+def auto_accept_invite():
+    img = capture_sub_window_percentage(hwnd, .35, .35, .42, .42)
+    text = convert_image_to_text(img)
+    matches = re.finditer(r"(\n+) wants to invite you", text, re.IGNORECASE | re.MULTILINE)
     for matchNum, match in enumerate(matches, start=1):
         person = match.groups()
+        print("Invite from `{}`".format(person))
         if person.lower() in (x.lower() for x in names):
+            # Tarkov doesn't accept inputs unless it's in the foreground
+            win32gui.SetForegroundWindow(hwnd)
             win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, 0x59, 0)
-            sleep(0.5)
+            time.sleep(0.5)
             win32api.SendMessage(hwnd, win32con.WM_KEYUP, 0x59, 0)
-        pass
-        # check for
 
-    # deployment sound
-
-    game_width = bbox[2] - bbox[0]
-    game_height = bbox[3] - bbox[1]
-    x_gutters = int(game_width * .41)
-    top_gutter = int(game_height * .45)
-    bottom_gutter = int(game_height * .20)
-
-    new_box = (
-        bbox[0] + x_gutters,
-        bbox[1] + top_gutter,
-        bbox[0] + x_gutters + (game_width - (x_gutters * 2)),
-        bbox[3] - bottom_gutter
-    )
-
-    img = ImageGrab.grab(new_box)
+def deployment_warning():
+    img = capture_sub_window_percentage(hwnd, .41, .41, .45, .20)
+    text = convert_image_to_text(img)
     after_grab = time.time()
-    # cv2.imshow('screen', np.array(img))
-    # cv2.waitKey(0)
-    im = np.asarray(img)
-    im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-
-    text = pytesseract.image_to_string(im).lower()
-
     if "get ready" in text or "deploying in" in text:
         print("found deployment text")
         text = text[text.find('deploying in:'):]
@@ -109,15 +97,23 @@ while True:
 
             for x in range(int(newSec)):
                 playsound('./assets/audio.wav')
-            cv2.imshow('test', np.array(im))
-            break;
+            break
         time.sleep(5)
+
+
+while True:
+    start_time = time.time()
+    # auto-accept invites
+    auto_accept_invite()
+
+    # deployment sound
+    deployment_warning()
 
     # Press "q" to quit
     if cv2.waitKey(25) & 0xFF == ord('q'):
         cv2.destroyAllWindows()
         break
     # One screenshot per second
-    elapsed = time.time() - after_grab
+    elapsed = time.time() - start_time
     print('Took: {0}'.format(elapsed))
 
