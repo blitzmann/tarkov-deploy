@@ -1,0 +1,39 @@
+name: "tagged-release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  gh_tagged_release:
+    runs-on: "windows-latest"
+    steps:
+      - name: "Checkout source code"
+        uses: "actions/checkout@v2.3.4"
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+      - run: "pip install -r requirements.txt"
+      - run: "pip install pyinstaller"
+      - run: "pyinstaller --onefile main.spec"
+      - uses: papeloto/action-zip@v1
+        with:
+          files: dist/main.exe config.json
+          dest: tarkov-deploy.zip
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          files: |
+            tarkov-deploy.zip
+        id: "automatic_releases"
+
+      - uses: "marvinpinto/action-keybase-notifications@latest"
+        if: always()
+        with:
+          job_status: ${{ job.status }}
+          opensentinel_token: ${{ secrets.OSL_TOKEN }}
