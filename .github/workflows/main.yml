@@ -28,7 +28,7 @@ jobs:
       - run: "pyinstaller --onefile main.spec"
       - uses: papeloto/action-zip@v1
         with:
-          files: dist/main.exe config.json
+          files: dist/main.exe config.json LICENSE.md README.md
           dest: tarkov-deploy.zip
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
