@@ -17,6 +17,12 @@ jobs:
         with:
           python-version: '3.7' # Version range or exact version of a Python version to use, using SemVer's version range syntax
           architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+      - uses: actions/cache@v1
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - run: "pip install -r requirements.txt"
       - run: "pip install pyinstaller"
       - run: "pyinstaller --onefile main.spec"
@@ -31,9 +37,4 @@ jobs:
           files: |
             tarkov-deploy.zip
         id: "automatic_releases"
-
-      - uses: "marvinpinto/action-keybase-notifications@latest"
-        if: always()
-        with:
-          job_status: ${{ job.status }}
-          opensentinel_token: ${{ secrets.OSL_TOKEN }}
+      
