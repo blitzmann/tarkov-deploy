@@ -7,7 +7,7 @@ import win32con
 import win32api
 import re
 from playsound import playsound
-import json
+import commentjson as json
 from os import path
 import sys
 
@@ -50,17 +50,17 @@ def convert_image_to_text(img):
 def auto_accept_invite(hwnd):
     img = capture_sub_window_percentage(
         hwnd,
-        cfg["auto_invite"]["bounding_box"]["left"],
-        cfg["auto_invite"]["bounding_box"]["right"],
-        cfg["auto_invite"]["bounding_box"]["top"],
-        cfg["auto_invite"]["bounding_box"]["bottom"])
+        cfg["auto_accept"]["bounding_box"]["left"],
+        cfg["auto_accept"]["bounding_box"]["right"],
+        cfg["auto_accept"]["bounding_box"]["top"],
+        cfg["auto_accept"]["bounding_box"]["bottom"])
     text = convert_image_to_text(img)
     matches = re.finditer(r"(\n+) wants to invite you", text, re.IGNORECASE | re.MULTILINE)
 
     for matchNum, match in enumerate(matches, start=1):
         person = match.groups()
         print("Invite from `{}`".format(person))
-        allowed = [x.lower() for x in cfg["auto_invite"]["allowed_names"]]
+        allowed = [x.lower() for x in cfg["auto_accept"]["allowed_names"]]
         if len(allowed) == 0 or person.lower() in allowed:
             print("Invite allowed!".format(person))
             # Tarkov doesn't accept inputs unless it's in the foreground
@@ -122,7 +122,7 @@ try:
         while True:
             start_time = time.time()
             # auto-accept invites
-            if cfg["auto_invite"]["enabled"]:
+            if cfg["auto_accept"]["enabled"]:
                 auto_accept_invite(hwnd)
 
             # deployment warning

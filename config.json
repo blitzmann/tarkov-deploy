@@ -1,8 +1,14 @@
 {
+  // The window that the program looks for
   "window_name": "EscapeFromTarkov",
-  "auto_invite": {
+  // Settings related to auto-accept
+  "auto_accept": {
+    // determines if this functionality is enabled
     "enabled": false,
+    // List of names of players you wish to auto-accept invites from. Syntax: ["Name 1", "Name 2"]
+    // If auto-accept is enabled and list is empty, all invites will be accepted
     "allowed_names": [],
+    // The area of the screen that the screenshot targets, in percentage.
     "bounding_box": {
       "left": 0.35,
       "right": 0.35,
@@ -10,8 +16,11 @@
       "bottom": 0.42
     }
   },
+  // settings related to deployment warning
   "deploy_warning": {
+    // determines if this functionality is enabled
     "enabled": true,
+    // The area of the screen that the screenshot targets, in percentage
     "bounding_box": {
       "left": 0.41,
       "right": 0.41,
