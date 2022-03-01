@@ -1,7 +1,6 @@
 import time
 import cv2
 import numpy as np
-import pytesseract
 from PIL import ImageGrab
 import win32gui
 import win32con
@@ -10,6 +9,10 @@ import re
 from playsound import playsound
 import json
 from os import path
+import sys
+
+import pytesseract
+from pytesseract import TesseractNotFoundError
 
 path_to_audio = path.abspath(path.join(path.dirname(__file__), 'assets', 'audio.wav'))
 
@@ -98,34 +101,40 @@ def deployment_warning(hwnd):
             break
         time.sleep(5)
 
-while True:
-
-    toplist, winlist = [], []
-
-    def enum_cb(hwnd, results):
-        winlist.append((hwnd, win32gui.GetWindowText(hwnd)))
-
-    win32gui.EnumWindows(enum_cb, toplist)
-    tarkov = [(hwnd, title) for hwnd, title in winlist if cfg["window_name"].lower() in title.lower()]
-    if len(tarkov) == 0:
-        print("Cannot find {} window.".format(cfg["window_name"]))
-        time.sleep(5)
-        continue
-
-    tarkov = tarkov[0]
-    hwnd = tarkov[0]
-
+try:
     while True:
-        start_time = time.time()
-        # auto-accept invites
-        if cfg["auto_invite"]["enabled"]:
-            auto_accept_invite(hwnd)
 
-        # deployment warning
-        if cfg["deploy_warning"]["enabled"]:
-            deployment_warning(hwnd)
+        toplist, winlist = [], []
 
-        # One screenshot per second
-        elapsed = time.time() - start_time
-        print('Took: {0}'.format(elapsed))
+        def enum_cb(hwnd, results):
+            winlist.append((hwnd, win32gui.GetWindowText(hwnd)))
 
+        win32gui.EnumWindows(enum_cb, toplist)
+        tarkov = [(hwnd, title) for hwnd, title in winlist if cfg["window_name"].lower() in title.lower()]
+        if len(tarkov) == 0:
+            print("Cannot find {} window.".format(cfg["window_name"]))
+            time.sleep(5)
+            continue
+
+        tarkov = tarkov[0]
+        hwnd = tarkov[0]
+
+        while True:
+            start_time = time.time()
+            # auto-accept invites
+            if cfg["auto_invite"]["enabled"]:
+                auto_accept_invite(hwnd)
+
+            # deployment warning
+            if cfg["deploy_warning"]["enabled"]:
+                deployment_warning(hwnd)
+
+            # One screenshot per second
+            elapsed = time.time() - start_time
+            print('Took: {0}'.format(elapsed))
+except TesseractNotFoundError:
+    print(
+        "tesseract is not installed or it's not in your PATH. Please find the Windows "
+        "binaries for download here: https://github.com/UB-Mannheim/tesseract/wiki")
+    input()
+    sys.exit(1)
