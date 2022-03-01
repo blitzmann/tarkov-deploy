@@ -1,0 +1,22 @@
+{
+  "window_name": "EscapeFromTarkov",
+  "auto_invite": {
+    "enabled": false,
+    "allowed_names": [],
+    "bounding_box": {
+      "left": 0.35,
+      "right": 0.35,
+      "top": 0.42,
+      "bottom": 0.42
+    }
+  },
+  "deploy_warning": {
+    "enabled": true,
+    "bounding_box": {
+      "left": 0.41,
+      "right": 0.41,
+      "top": 0.45,
+      "bottom": 0.20
+    }
+  }
+}
