@@ -12,6 +12,17 @@ import jstyleson as json
 from os import path
 import sys
 from collections import deque
+import builtins as __builtin__
+from datetime import datetime
+
+
+def print(*args, **kwargs):
+    timestamp = datetime.now()
+    if 'timestamp' in kwargs:
+        if not kwargs['timestamp']:
+            timestamp = ""
+        del kwargs['timestamp']
+    return __builtin__.print(timestamp, *args, " " * 20, **kwargs)
 
 import pytesseract
 from pytesseract import TesseractNotFoundError
@@ -116,6 +127,7 @@ def deployment_warning(hwnd):
 
             for x in range(int(newSec)):
                 playsound(path_to_audio)
+
             break
         time.sleep(5)
 
@@ -127,7 +139,6 @@ def runningMeanFast(x, N):
 try:
     i = 0
     while True:
-
         toplist, winlist = [], []
 
         def enum_cb(hwnd, results):
@@ -156,8 +167,8 @@ try:
             # One screenshot per second
             elapsed = time.time() - start_time
             q.append(elapsed)
-            print('Waiting {0} Avg loop time: {1:.3f}s'.format(loading_symbols[i % 4], sum(q) / len(q)), end="\r")
-            i+=1
+            print('Waiting {0} Avg loop time: {1:.3f}s'.format(loading_symbols[i % 4], sum(q) / len(q)), end="\r", timestamp=False)
+            i += 1
             remaining = limiter - elapsed
             if remaining > 0:
                 time.sleep(remaining)
