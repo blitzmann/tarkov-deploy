@@ -5,16 +5,26 @@ from PIL import ImageGrab
 import win32gui
 import win32con
 import win32api
+import win32com, win32com.client
 import re
 from playsound import playsound
-import commentjson as json
+import jstyleson as json
 from os import path
 import sys
+from collections import deque
 
 import pytesseract
 from pytesseract import TesseractNotFoundError
 
-path_to_audio = path.abspath(path.join(path.dirname(__file__), 'assets', 'audio.wav'))
+q = deque(maxlen=100)
+root = None
+
+if hasattr(sys, '_MEIPASS'):
+    root = sys._MEIPASS
+base = getattr(sys.modules['__main__'], "__file__", sys.executable) if hasattr(sys, 'frozen') else __file__
+root = path.dirname(path.realpath(path.abspath(base)))
+
+path_to_audio = path.abspath(path.join(root, 'assets', 'audio.wav'))
 
 with open("config.json", "r") as file:
     cfg = json.load(file)
@@ -55,19 +65,27 @@ def auto_accept_invite(hwnd):
         cfg["auto_accept"]["bounding_box"]["top"],
         cfg["auto_accept"]["bounding_box"]["bottom"])
     text = convert_image_to_text(img)
-    matches = re.finditer(r"(\n+) wants to invite you", text, re.IGNORECASE | re.MULTILINE)
+    matches = re.finditer(r"(.+) wants to invite you", text, re.IGNORECASE | re.MULTILINE)
 
     for matchNum, match in enumerate(matches, start=1):
         person = match.groups()
+        person = person[0]
         print("Invite from `{}`".format(person))
         allowed = [x.lower() for x in cfg["auto_accept"]["allowed_names"]]
         if len(allowed) == 0 or person.lower() in allowed:
             print("Invite allowed!".format(person))
-            # Tarkov doesn't accept inputs unless it's in the foreground
-            win32gui.SetForegroundWindow(hwnd)
-            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, 0x59, 0)
-            time.sleep(0.5)
-            win32api.SendMessage(hwnd, win32con.WM_KEYUP, 0x59, 0)
+            try:
+                # Tarkov doesn't accept inputs unless it's in the foreground
+                shell = win32com.client.Dispatch("WScript.Shell")
+                shell.SendKeys('%')
+                # https://stackoverflow.com/a/46092
+                win32gui.ShowWindow(hwnd, 9)
+                win32gui.SetForegroundWindow(hwnd)
+                win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, 0x59, 0)
+                time.sleep(0.5)
+                win32api.SendMessage(hwnd, win32con.WM_KEYUP, 0x59, 0)
+            except Exception as ex:
+                print("Failed to bring window to foreground, err: {}".format(ex))
 
 def deployment_warning(hwnd):
     img = capture_sub_window_percentage(
@@ -101,7 +119,13 @@ def deployment_warning(hwnd):
             break
         time.sleep(5)
 
+loading_symbols = ['|', '/', '-', '\\']
+
+def runningMeanFast(x, N):
+    return np.convolve(x, np.ones((N,))/N)[(N-1):]
+
 try:
+    i = 0
     while True:
 
         toplist, winlist = [], []
@@ -118,7 +142,7 @@ try:
 
         tarkov = tarkov[0]
         hwnd = tarkov[0]
-
+        limiter = 0.5  # min seconds to wait between loops
         while True:
             start_time = time.time()
             # auto-accept invites
@@ -131,7 +155,13 @@ try:
 
             # One screenshot per second
             elapsed = time.time() - start_time
-            print('Took: {0}'.format(elapsed))
+            q.append(elapsed)
+            print('Waiting {0} Avg loop time: {1:.3f}s'.format(loading_symbols[i % 4], sum(q) / len(q)), end="\r")
+            i+=1
+            remaining = limiter - elapsed
+            if remaining > 0:
+                time.sleep(remaining)
+
 except TesseractNotFoundError:
     print(
         "tesseract is not installed or it's not in your PATH. Please find the Windows "
