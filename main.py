@@ -84,7 +84,7 @@ def auto_accept_invite(hwnd):
         print("Invite from `{}`".format(person))
         allowed = [x.lower() for x in cfg["auto_accept"]["allowed_names"]]
         if len(allowed) == 0 or person.lower() in allowed:
-            print("Invite allowed!".format(person))
+            print("\tInvite allowed!".format(person))
             try:
                 # Tarkov doesn't accept inputs unless it's in the foreground
                 shell = win32com.client.Dispatch("WScript.Shell")
@@ -108,25 +108,29 @@ def deployment_warning(hwnd):
     text = convert_image_to_text(img)
     after_grab = time.time()
     if "get ready" in text or "deploying in" in text:
-        print("found deployment text")
+        print("Found deployment text")
         text = text[text.find('deploying in:'):]
         text = "".join(text.split())
         matches = re.finditer(r"(\d+):(\d+).(\d+)", text)
 
         for matchNum, match in enumerate(matches, start=1):
             min, sec, frac = match.groups()
-            print(min, sec, frac)
+            print("\t{}:{}.{}".format(min, sec, frac))
             wholeSec = float('{}.{}'.format(sec, frac))
             elapsed = time.time() - after_grab
-            print('Took: {0}'.format(elapsed))
+            print('\tTook: {0}'.format(elapsed))
             newSec = wholeSec - elapsed
-            print('Current spot {}'.format(newSec))
+            print('\tCurrent spot {}'.format(newSec))
             sleep = newSec - int(newSec)
-            print('Sleep {}'.format(sleep))
+            print('\tSleep {}'.format(sleep))
             time.sleep(sleep)
 
-            for x in range(int(newSec)):
-                playsound(path_to_audio)
+            for x in reversed(range(int(newSec))):
+                print("\t\t{}".format(x))
+                if cfg["deploy_warning"]["staggered"] and x >= 5 and x % 2 == 1:
+                    time.sleep(1)
+                else:
+                    playsound(path_to_audio)
 
             break
         time.sleep(5)
